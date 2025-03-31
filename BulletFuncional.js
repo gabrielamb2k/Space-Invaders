@@ -35,3 +35,6 @@ const checkCollission = (bullet) => (sprite) => {
     return false
   }
 }
+
+//exporta as funcoes feitas para os outros arquivos
+export {createBullet, moveBullet, drawBullet, checkCollission}
