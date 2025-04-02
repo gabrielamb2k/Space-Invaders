@@ -9,26 +9,32 @@
     y: y,
     width:  44,
     height : 32;
-    image: image
+    image
   }
 }
 
 //passar o enemy como parametro
   const draw= (enemy) =>(ctx)=> {
     ctx.drawImage(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height);
+   //retornar para manter o paradigma
+   return enemy;
   }
 
+//mover inimigos
   const move = (enemy)=>(xVelocity) => (yVelocity) => {
       //extrair o numero da imagem
     const imageNumber = 
       enemy.image.src.split('enemy')[1].split('.')[0];
+   //cria um  novo inimigo
     return createEnemy{
-    enemy.x += xVelocity;
-    enemy.y += yVelocity;
+    (enemy.x += xVelocity)
+    (enemy.y += yVelocity)
+     (imageNumber);
     
   }
   }
 
+//detecta colisoes
   collideWith = (enemy) => (sprite) => {
     if (
       enemy.x + enemy.width > sprite.x &&
