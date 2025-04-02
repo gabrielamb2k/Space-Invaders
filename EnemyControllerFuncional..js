@@ -1,8 +1,14 @@
-import Enemy from "./Enemy.js";
-import MovingDirection from "./MovingDirection.js";
+//importar do Enemy.js
 
-export default class EnemyController {
-  enemyMap = [
+import{
+createEnemy,
+  draw,
+  move,
+  collideWith
+} from ".EnemyFuncional.js";
+
+//colocar as constantes imutaveis, enemymap, e todas as funcoes padroes, defaults
+ const enemyMap = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
@@ -10,30 +16,130 @@ export default class EnemyController {
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
   ];
-  enemyRows = [];
 
-  currentDirection = MovingDirection.right;
-  xVelocity = 0;
-  yVelocity = 0;
-  defaultXVelocity = 1;
-  defaultYVelocity = 1;
-  moveDownTimerDefault = 30;
-  moveDownTimer = this.moveDownTimerDefault;
-  fireBulletTimerDefault = 100;
-  fireBulletTimer = this.fireBulletTimerDefault;
+const defaultXVelocity : 1;
+const  defaultYVelocity : 1;
+const 
+  moveDownTimerDefault : 30;
+  const fireBulletTimerDefault : 100;
 
-  constructor(canvas, enemyBulletController, playerBulletController) {
-    this.canvas = canvas;
-    this.enemyBulletController = enemyBulletController;
-    this.playerBulletController = playerBulletController;
+//funcao para criar inimigo a partir do mapa
+const createEnemies = (canvas) => {
+  return enemyMap.map((row,rowIndex))=> 
+  row.reduce((enemyRow,enemyNumber,enemyIndex) => {
+  if(enemyNumber>0){  //se o numero de inimigos for maior do que 0, const enemy
+  const enemy = createEnemy(
+    (enemyIndex*50)
+    (rowInex*35)
+    (enemyNumber)
+  );
+    return [...enemyRow,enemy]; 
+  }
+    return enemyRow;
+  },[])
+}
 
-    this.enemyDeathSound = new Audio("sounds/enemy-death.wav");
-    this.enemyDeathSound.volume = 0.1;
+//funcao para criar estado inicial do controlador
+ const createEnemyController = (canvas) => (enemyBulletController) =>  (playerBulletController) => {
+      const enemyDeathSound = new Audio("sounds/enemy-death.wav");
+        enemyDeathSound.volume = 0.1; //nao e puro, mas e necessario par o audio
 
-    this.createEnemies();
+//criar estado inicial imutavel
+const estadoinicial = {
+     canvas,
+    enemyBulletController,
+     playerBulletController,
+        enemyRows: createEnemies(canvas),
+  currentDirection : MovingDirection.right,
+  xVelocity : 0,
+  yVelocity : 0,
+  moveDownTimer : moveDownTimerDefault,
+  fireBulletTimer : FireBulletTimerDefault,
+  }
+}
+return estadoinicial;
+}
+
+//funcao para decrementar o timer para baixo 
+const decrementMoveDownTimer = (estado) => {
+  if(
+    estado.currentDirection == MoveDirection.downLeft ||
+    estado.currentDirection == MoveDirection.downRight){
+    return{ ...estado,
+      moveDownTimer : estado.moveDoenTimer - 1}
+  }
+  return estado;
+}
+
+//funcao para resetar o tempo de movimento para baixo
+const resetMoveDownTimer = (estado) => {
+if(estado.moveDownTimer<=0){
+  return{
+    ...state,
+    moveDownTimer : estado.moveDownTimerDefault
+  };
+  
+}
+  return estado; //sempre retornar o estado apos cada funcao
+}
+
+//funcao para mover para baixo
+const moveDown = (estado) => (newDirection) => {
+const novoestado = {
+...estado,
+  xVelocity : 0,
+  yVelocity : estado.defaultYVelocity,
+}
+
+  if(estado.moveDownTimer<=0){
+  return {
+    ...novoestado,
+    currentDirection : newDirection //atualizo a direcao para uma nova
+  }
   }
 
-  draw(ctx) {
+return novoestado;
+}
+
+//funcao para detectar colisoes 
+const collisionDetected = (estado) => {
+const filterenemyRow = (enemyRow,playerBulletController,playSound) => {
+return enemyRow.filter(enemy => {
+const atingido = playerBulletController.collideWith(enemy);
+if(atingido) { //se foi atingido toque a musica
+playSound()
+}
+  return !atingido;
+}
+
+}
+
+    
+
+//funcao para tocar o som
+const playdeathSound = () => {
+estado.enemyDeathSound.currentTime : 0;
+  estado.enemyDeathSound.play(); //nao e 100% funcional
+}
+
+//aplicar filtro em todas as linhas
+const newEnemyRows = estado.enemyRows.map(enemyRow=>
+  filterenemyRow(enemyRow, estado.playerBulletController,playDeathSound)); //vem das colisoes
+
+//filtra linhas vazias
+
+const filteredEnemyRows = newEnemyRows.filter(row=>row.length > 0); 
+  return{
+    ...estado
+      enemyRows : filteredEnemyRows
+};
+};
+
+  
+//faltam as funcoes para atirar, desenhar e atualizar o desenho, verificar a colisao com sprite , e atualizar velocidade e direcao
+
+
+  const draw = ((ctx) {
     this.decrementMoveDownTimer();
     this.updateVelocityAndDirection();
     this.collisionDetection();
@@ -42,19 +148,6 @@ export default class EnemyController {
     this.fireBullet();
   }
 
-  collisionDetection() {
-    this.enemyRows.forEach((enemyRow) => {
-      enemyRow.forEach((enemy, enemyIndex) => {
-        if (this.playerBulletController.collideWith(enemy)) {
-          this.enemyDeathSound.currentTime = 0;
-          this.enemyDeathSound.play();
-          enemyRow.splice(enemyIndex, 1);
-        }
-      });
-    });
-
-    this.enemyRows = this.enemyRows.filter((enemyRow) => enemyRow.length > 0);
-  }
 
   fireBullet() {
     this.fireBulletTimer--;
@@ -67,20 +160,7 @@ export default class EnemyController {
     }
   }
 
-  resetMoveDownTimer() {
-    if (this.moveDownTimer <= 0) {
-      this.moveDownTimer = this.moveDownTimerDefault;
-    }
-  }
 
-  decrementMoveDownTimer() {
-    if (
-      this.currentDirection === MovingDirection.downLeft ||
-      this.currentDirection === MovingDirection.downRight
-    ) {
-      this.moveDownTimer--;
-    }
-  }
 
   updateVelocityAndDirection() {
     for (const enemyRow of this.enemyRows) {
@@ -112,16 +192,7 @@ export default class EnemyController {
     }
   }
 
-  moveDown(newDirection) {
-    this.xVelocity = 0;
-    this.yVelocity = this.defaultYVelocity;
-    if (this.moveDownTimer <= 0) {
-      this.currentDirection = newDirection;
-      return true;
-    }
-    return false;
-  }
-
+  
   drawEnemies(ctx) {
     this.enemyRows.flat().forEach((enemy) => {
       enemy.move(this.xVelocity, this.yVelocity);
