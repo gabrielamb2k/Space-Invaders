@@ -28,6 +28,31 @@ const createPlayer = (canvas, velocity, bulletController) => {
   };
 };
 
+// Funcoes puras para manipulacao de eventos de teclado
+const handleKeyDown = (event) => {
+  if (event.code === "ArrowRight") {
+    keyboardState = { ...keyboardState, rightPressed: true };
+  }
+  if (event.code === "ArrowLeft") {
+    keyboardState = { ...keyboardState, leftPressed: true };
+  }
+  if (event.code === "Space") {
+    keyboardState = { ...keyboardState, shootPressed: true };
+  }
+};
+
+const handleKeyUp = (event) => {
+  if (event.code === "ArrowRight") {
+    keyboardState = { ...keyboardState, rightPressed: false };
+  }
+  if (event.code === "ArrowLeft") {
+    keyboardState = { ...keyboardState, leftPressed: false };
+  }
+  if (event.code === "Space") {
+    keyboardState = { ...keyboardState, shootPressed: false };
+  }
+};
+
 //funcao para lidar com o tiro
 const handleShooting = (player) => {
   if (keyboardState.shootPressed) {
