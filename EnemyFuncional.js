@@ -3,7 +3,7 @@
 //fazer uma funcao para a iomgame e uma para  o enemy
 const createImage = (imagemNumber)_ => {
  //colocar aimagem e nova imagem no comeco
-    const image = new novaimagem();
+    const image = new Image();
     image.src = `images/enemy${imageNumber}.png`;
  return image;
 }
