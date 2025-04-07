@@ -1,5 +1,4 @@
 # Space-Invaders
-# Space-Invaders
 
 
 ## Nome dos integrantes:
