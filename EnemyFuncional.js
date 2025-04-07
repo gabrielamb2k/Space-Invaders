@@ -1,7 +1,7 @@
  //transformar em const, utilizar curry
 
 //fazer uma funcao para a iomgame e uma para  o enemy
-const createImage = (imagemNumber)_ => {
+const createImage = (imagemNumber) => {
  //colocar aimagem e nova imagem no comeco
     const image = new Image();
     image.src = `images/enemy${imageNumber}.png`;
@@ -15,7 +15,7 @@ const createImage = (imagemNumber)_ => {
     x: x, //retirar os this, e poo, trocar por :
     y: y,
     width:  44,
-    height : 32;
+    height : 32,
     image
   };
 };
@@ -38,7 +38,7 @@ const createImage = (imagemNumber)_ => {
   };
 
 //detecta colisoes
-  collideWith = (enemy) => (sprite) => {
+const collideWith = (enemy) => (sprite) => {
     return (
       enemy.x + enemy.width > sprite.x &&
       enemy.x < sprite.x + sprite.width &&

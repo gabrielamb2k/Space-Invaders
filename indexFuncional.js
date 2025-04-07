@@ -1,3 +1,7 @@
+import { createEnemyController, checkCollision, drawEnemies } from "./EnemyControllerFuncional.js";
+import { createPlayer, updateAndDrawPlayer } from "./PlayerFuncional.js";
+import { createBulletController, checkCollissionController, updateAndDrawBulletController } from "./BulletControllerFuncional.js";
+
 const createCanvas = (width, height) => {
   const canvas = document.getElementById("game");
   canvas.width = width;
@@ -17,15 +21,28 @@ const drawBackground = (ctx, image, width, height) => {
 };
 
 
-const { canvas, ctx } = createCanvas(600, 600);
 const background = loadImage("images/space.png");
+const { canvas, ctx } = createCanvas(600, 600);
 
 
+
+const playerBulletController = createBulletController(canvas)(10)("red")( true);
+const enemyBulletController = createBulletController(canvas)(4)("white")(false);
+const enemyController = createEnemyController(
+  canvas,
+  enemyBulletController,
+  playerBulletController
+);
+
+
+const { enemyRows } = enemyController
+
+const player = createPlayer(canvas, 3, playerBulletController);
 // Estado inicial do jogo
 let gameState = {
   player: { x: 275, y: 550, lives: 3 },
   bullets: [],
-  enemies: generateEnemies(),
+  enemyController,
   enemyBullets: [],
   isGameOver: false,
   didWin: false,
@@ -33,67 +50,12 @@ let gameState = {
 
 
 
-// Função para desenhar o jogador
-const drawPlayer = (player) => {
-  ctx.fillStyle = "blue";
-  ctx.fillRect(player.x, player.y, 50, 50);
-};
-
-// Função para desenhar balas
-const drawBullets = (bullets, color) => {
-  ctx.fillStyle = color;
-  bullets.forEach((b) => ctx.fillRect(b.x, b.y, 5, 10));
-};
-
-// Função para desenhar inimigos
-const drawEnemies = (enemies) => {
-  ctx.fillStyle = "green";
-  enemies.forEach((e) => ctx.fillRect(e.x, e.y, 40, 40));
-};
-
 // Atualiza a posição dos projéteis
-const updateBullets = (bullets, speed) =>
-  bullets.map((b) => ({ ...b, y: b.y + speed })).filter((b) => b.y > 0);
 
-// Verifica colisão (simplificada)
-const checkCollision = (obj1, obj2) =>
-  obj1.x < obj2.x + 40 &&
-  obj1.x + 40 > obj2.x &&
-  obj1.y < obj2.y + 40 &&
-  obj1.y + 40 > obj2.y;
-
-// Verifica se o jogo terminou
-const checkGameOver = (state) => {
-  if (state.isGameOver) return state;
-
-  const playerHit =
-    state.enemyBullets.some((b) => checkCollision(b, state.player)) ||
-    state.enemies.some((e) => checkCollision(e, state.player));
-
-  return {
-    ...state,
-    isGameOver: playerHit || state.enemies.length === 0,
-    didWin: state.enemies.length === 0,
-  };
-};
-
-// Atualiza o estado do jogo
-const updateGameState = (state) => {
-  if (state.isGameOver) return state;
-
-  return checkGameOver({
-    ...state,
-    bullets: updateBullets(state.bullets, -5),
-    enemyBullets: updateBullets(state.enemyBullets, 2),
-    enemies: state.enemies.filter(
-      (e) => !state.bullets.some((b) => checkCollision(b, e))
-    ),
-  });
-};
 
 // Renderiza a tela
-const render = (state) => {
-  drawBackground();
+const render = () => {
+  drawBackground (background, 0, 0, canvas.width, canvas.height);
   drawPlayer(state.player);
   drawBullets(state.bullets, "red");
   drawBullets(state.enemyBullets, "white");
@@ -109,12 +71,51 @@ const render = (state) => {
     );
   }
 };
+const checkGameOver = (player)=> {
+  if (isGameOver) {
+    return;
+  }
 
-// Loop do jogo
-const gameLoop = () => {
-  gameState = updateGameState(gameState);
-  render(gameState);
-  requestAnimationFrame(gameLoop);
-};
+  if (checkCollissionController(player)) {
+    isGameOver = true;
+  }
 
-gameLoop();
+  if (checkCollision(player)) {
+    isGameOver = true;
+  }
+
+  if (enemyRows.length === 0) {
+    didWin = true;
+    isGameOver = true;
+  }
+  return {player, isGameOver, didWin}
+}
+
+let isGameOver = false;
+let didWin = false;
+
+const game = ()=>{
+  checkGameOver(player)
+  ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+  displayGameOver()
+  if (!isGameOver) {
+    drawEnemies(ctx);
+    updateAndDrawPlayer(ctx);
+    updateAndDrawBulletController(ctx);
+    updateAndDrawBulletController(ctx);
+  }
+}
+
+
+const displayGameOver  = ()=> {
+  if (isGameOver) {
+    let text = didWin ? "You Win" : "Game Over";
+    let textOffset = didWin ? 3.5 : 5;
+
+    ctx.fillStyle = "white";
+    ctx.font = "70px Arial";
+    ctx.fillText(text, canvas.width / textOffset, canvas.height / 2);
+  }
+}
+
+setInterval(game, 1000 / 60);

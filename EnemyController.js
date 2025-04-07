@@ -148,3 +148,5 @@ export default class EnemyController {
     return this.enemyRows.flat().some((enemy) => enemy.collideWith(sprite));
   }
 }
+
+export

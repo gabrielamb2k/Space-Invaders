@@ -1,10 +1,10 @@
 ///importar do Enemy.js
 import {
   createEnemy,
-  drawEnemy,
-  moveEnemy,
-  enemyCollidesWith,
-} from ".EnemyFuncional.js";
+  draw,
+  collideWith,
+  move,
+} from "./EnemyFuncional.js";
 
 import MovingDirection from "./MovingDirection.js";
 
@@ -25,7 +25,7 @@ const createEnemyController = (
   const enemyRows = enemyMap.map((row, rowIndex) =>
     row
       .map((type, colIndex) =>
-        type > 0 ? createEnemy(colIndex * 50, rowIndex * 35, type) : null,
+        type > 0 ? createEnemy(colIndex * 50)(rowIndex * 35) (type) : null,
       )
       .filter(Boolean),
   );
@@ -175,4 +175,5 @@ export {
   updateEnemyController,
   drawEnemies,
   enemyCollides,
+  checkCollision
 };
