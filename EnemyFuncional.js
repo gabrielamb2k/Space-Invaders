@@ -1,49 +1,71 @@
- //transformar em const, utilizar curry
+const createEnemy = (x, y, imageNumber) => {
+  const width = 44;
+  const height = 32;
+  
 
-//fazer uma funcao para a iomgame e uma para  o enemy
-const createImage = (imagemNumber) => {
- //colocar aimagem e nova imagem no comeco
-    const image = new Image();
-    image.src = `images/enemy${imageNumber}.png`;
- return image;
-}
-
-  const createEnemy= (x) =>  (y) => (imageNumber)=> {
-//colocar aimagem e nova imagem no comeco
-    const image = createImage(imageNumber);
-    return{
-    x: x, //retirar os this, e poo, trocar por :
-    y: y,
-    width:  44,
-    height : 32,
+  const image = new Image();
+  image.src = `images/enemy${imageNumber}.png`;
+  
+  return {
+    x,
+    y,
+    width,
+    height,
+    imageNumber,
     image
   };
 };
 
-//passar o enemy como parametro
-  const draw= (enemy) =>(ctx)=> {
-    ctx.drawImage(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height);
-   //retornar para manter o paradigma
-   return enemy;
-  };
 
-//mover inimigos
-  const move = (enemy) => (xVelocity) => (yVelocity) => {
-      //extrair o numero da imagem
-   const imageScr = enemy.image.scr;
-    const imageNumber = 
-     imageScr.split('enemy')[1]?.split('.')[0] || '1';
-   //retorna um  njovo inimigo com coordenadas atualizadas
-    return createEnemy(enemy.x += xVelocity)(enemy.y += yVelocity)(imageNumber);
-  };
+const drawEnemy = (enemy, ctx) => {
+  ctx.drawImage(enemy.image, enemy.x, enemy.y, enemy.width, enemy.height);
+};
 
-//detecta colisoes
-const collideWith = (enemy) => (sprite) => {
-    return (
-      enemy.x + enemy.width > sprite.x &&
-      enemy.x < sprite.x + sprite.width &&
-      enemy.y + enemy.height > sprite.y &&
-      enemy.y < sprite.y + sprite.height
-    );
+
+const moveEnemy = (enemy, xVelocity, yVelocity) => {
+  return {
+    ...enemy,
+    x: enemy.x + xVelocity,
+    y: enemy.y + yVelocity
   };
-export { createEnemy,draw,move,collideWith };
+};
+
+
+const move = (enemy, xVelocity, yVelocity) => {
+  enemy.x += xVelocity;
+  enemy.y += yVelocity;
+  return enemy;
+};
+
+
+const enemyCollideWith = (enemy, sprite) => {
+  if (
+    enemy.x + enemy.width > sprite.x &&
+    enemy.x < sprite.x + sprite.width &&
+    enemy.y + enemy.height > sprite.y &&
+    enemy.y < sprite.y + sprite.height
+  ) {
+    return true;
+  }
+  return false;
+};
+
+
+const drawE = (enemy, ctx) => {
+  drawEnemy(enemy, ctx);
+};
+
+
+const collideWith = (enemy, sprite) => {
+  return enemyCollideWith(enemy, sprite);
+};
+
+export { 
+  createEnemy, 
+  drawEnemy, 
+  moveEnemy, 
+  enemyCollideWith,
+  drawE,
+  move,
+  collideWith
+};

@@ -5,4 +5,4 @@ const MovingDirection = {
   downRight: 3,
 };
 
-export default MovingDirection;
+export {MovingDirection};

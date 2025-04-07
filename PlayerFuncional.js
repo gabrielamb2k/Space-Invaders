@@ -1,9 +1,9 @@
 //usar let, porque vai ter que alterar o evento, dependendo do estado que ele vai estar
-let keyboardState = {
+let keyboardState = () => ({
   rightPressed: false,
   leftPressed: false,
   shootPressed: false,
-};
+});
 
 //funcao para criar um player
 const createPlayer = (canvas, velocity, bulletController) => {

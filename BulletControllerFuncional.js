@@ -7,8 +7,8 @@ import {
 
 //funcao para controller inicial da bala
 const createBulletController =
-  (canvas) => (maxBulletsAtATime) => (bulletColor) => (soundEnabled) => {
-    const shootSound = new Audio("sounds/shoot.way"); //som da bala
+  (canvas,maxBulletsAtATime,bulletColor,soundEnabled) => {
+    const shootSound = new Audio("sounds/shoot.wav"); //som da bala
     shootSound.volume = 0.1;
     return {
       canvas,
@@ -22,7 +22,7 @@ const createBulletController =
   };
 
 //funcao para controlar o estado das balas
-const updateAndDrawBulletController = (controller) => (ctx) => {
+const updateAndDrawBulletController = (controller,ctx) => {
   //faz a filtragem das balas que estao na tela
   const filterBullets = controller.bullets.filter(
     (bullet) =>
@@ -43,7 +43,7 @@ const updateAndDrawBulletController = (controller) => (ctx) => {
 };
 
 //funcao para controlar a colissao da bala
-const checkCollissionController = (controller) => (sprite) => {
+const checkCollissionController = (controller,sprite) => {
   //verifica se ouve uma colissao da nave com a bala
   const bulletThatHitSpriteIndex = controller.bullets.findIndex((bullet) =>
     checkCollission(bullet)(sprite),
@@ -72,11 +72,7 @@ const checkCollissionController = (controller) => (sprite) => {
 
 //funcao para atirar uma nova bala
 const shootController =
-  (controller) =>
-  (x) =>
-  (y) =>
-  (velocity) =>
-  (timeTillNextBulletAllowed = 0) => {
+  (controller,x, y, velocity, timeTillNextBulletAllowed = 0) => {
     //condicao para ver se pode atirar
     if (
       controller.timeTillNextBulletAllowed <= 0 &&
