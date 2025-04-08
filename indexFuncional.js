@@ -1,8 +1,8 @@
 import {
   createEnemyController,
+  updateEnemyController,
   drawEnemyController,
-  collideWithEnemyAndBullet,
-  updateEnemyController   
+  collideWithPlayer
 } from "./EnemyControllerFunc.js";
 import {
   createPlayer,
@@ -16,7 +16,7 @@ import {
   shootController,
 } from "./BulletControllerFuncional.js";
 
-// Inicialização do canvas
+// inicializa o canvas
 const initCanvas = () => {
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -25,21 +25,21 @@ const initCanvas = () => {
   return { canvas, ctx };
 };
 
-// Carregar imagem
+// imagem
 const loadImage = (src) => {
   const image = new Image();
   image.src = src;
   return image;
 };
 
-// Estado inicial do jogo
+// cria um estado inicial do game
 const createGameState = () => {
   const { canvas, ctx } = initCanvas();
   const background = loadImage("images/space.png");
 
-  // Passar os parâmetros necessários: (canvas, maxBullets, bulletColor, soundEnabled)
-  const playerBulletController = createBulletController(canvas, 5, "white", true);
-  const enemyBulletController = createBulletController(canvas, 3, "red", false);
+
+  const playerBulletController = createBulletController(canvas, 10, "red", true);
+  const enemyBulletController = createBulletController(canvas, 4, "white", false);
   const enemyController = createEnemyController(canvas, enemyBulletController, playerBulletController);
   const player = createPlayer(canvas, 3, playerBulletController);
 
@@ -52,41 +52,69 @@ const createGameState = () => {
     enemyController,
     player,
     isGameOver: false,
-    didWin: false
+    didWin: false,
+    enemyShootCooldown: 50,
   };
 };
 
-// Verificação de fim de jogo
 const checkGameOver = (state) => {
   if (state.isGameOver) return state;
+
 
   const { collided: hitByBullet, controller: updatedEnemyBulletController } =
     checkCollissionController(state.enemyBulletController, state.player);
 
-  const hitByEnemy = collideWithEnemyAndBullet(state.enemyController, state.player);
+
+  const hitByEnemy = collideWithPlayer(state.enemyController, state.player);
+  
+
   const noEnemiesLeft = state.enemyController.enemyRows.length === 0;
+
+
+  const gameOver = hitByBullet || hitByEnemy;
+  const playerWon = noEnemiesLeft && !gameOver;
 
   return {
     ...state,
-    isGameOver: hitByBullet || hitByEnemy,
-    didWin: noEnemiesLeft && !(hitByBullet || hitByEnemy),
+    isGameOver: gameOver || playerWon,
+    didWin: playerWon,
     enemyBulletController: updatedEnemyBulletController
   };
 };
 
-// Tela de fim de jogo
+
 const displayGameOver = (state) => {
   if (state.isGameOver) {
-    const text = state.didWin ? "You Win" : "Game Over";
+    const text = state.didWin ? "Voce ganhou" : "Voce perdeu";
     const textOffset = state.didWin ? 3.5 : 5;
 
     state.ctx.fillStyle = "white";
     state.ctx.font = "70px Arial";
     state.ctx.fillText(text, state.canvas.width / textOffset, state.canvas.height / 2);
   }
+  return state;
 };
 
-// Loop principal do jogo
+const enemyShoot = (state) => {
+  const allEnemies = state.enemyController.enemyRows.flat();
+  if (allEnemies.length === 0) return state;
+
+  const randomEnemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+
+  const newEnemyBulletController = shootController(
+    state.enemyBulletController,
+    randomEnemy.x + randomEnemy.width / 2,
+    randomEnemy.y,
+    +3 // velocidade para cima
+  );
+
+  return {
+    ...state,
+    enemyBulletController: newEnemyBulletController
+  };
+};
+
+
 const gameLoop = (state) => {
   const updatedState = checkGameOver(state);
 
@@ -113,27 +141,48 @@ const gameLoop = (state) => {
 
     const newPlayer = updateAndDrawPlayer(updatedState.player, updatedState.ctx);
     const newPlayerBulletController = updateAndDrawBulletController(updatedState.playerBulletController, updatedState.ctx);
+    
+
+     // Verifica se deve atirar
+     const finalPlayerBulletController = keyboardState.shootPressed
+     ? shootController(
+         newPlayerBulletController,
+         newPlayer.x + newPlayer.width / 2,
+         newPlayer.y,
+         -10
+       )
+     : newPlayerBulletController;
+    
+
     const newEnemyBulletController = updateAndDrawBulletController(updatedState.enemyBulletController, updatedState.ctx);
 
-    // Verifica se deve atirar
-    const finalPlayerBulletController = keyboardState.shootPressed
-      ? shootController(
-          newPlayerBulletController,
-          newPlayer.x + newPlayer.width / 2,
-          newPlayer.y,
-          -10
-        )
-      : newPlayerBulletController;
+    // Reduz temporizador de tiro dos inimigos
+    const updatedCooldown = Math.max(0, updatedState.enemyShootCooldown - 1);
+    let newEnemyBulletControllerFinal = newEnemyBulletController;
+    let resetCooldown = updatedCooldown;
 
-    requestAnimationFrame(() =>
-      gameLoop({
+    // Se chegou a 0, atira e reseta o cooldown
+    if (updatedCooldown === 0) {
+      const tempState = {
         ...updatedState,
-        enemyController: newEnemyController,
-        player: newPlayer,
-        playerBulletController: finalPlayerBulletController,
-        enemyBulletController: newEnemyBulletController,
-      })
-    );
+        enemyBulletController: newEnemyBulletController
+      };
+      const afterShootState = enemyShoot(tempState);
+      newEnemyBulletControllerFinal = afterShootState.enemyBulletController;
+      resetCooldown = 50 + Math.floor(Math.random() * 30); // adiciona variação aleatória
+    }
+
+
+      requestAnimationFrame(() =>
+        gameLoop({
+          ...updatedState,
+          enemyController: newEnemyController,
+          player: newPlayer,
+          playerBulletController: finalPlayerBulletController,
+          enemyBulletController: newEnemyBulletControllerFinal, 
+          enemyShootCooldown: resetCooldown,
+        })
+      );
   }
 };
 

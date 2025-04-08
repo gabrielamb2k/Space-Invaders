@@ -1,7 +1,7 @@
 import {
   createEnemy,
   drawE,
-  move,
+  moveEnemy,
   collideWith
 } from "./EnemyFuncional.js";
 
@@ -11,7 +11,7 @@ import {
 
 import {
   shootController
-} from './BulletControllerFuncional.js     ';
+} from './BulletControllerFuncional.js';
 
 const ENEMY_MAP = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -23,6 +23,9 @@ const ENEMY_MAP = [
 ];
 
 const createEnemyController = (canvas, enemyBulletController, playerBulletController) => {
+  const enemyDeathSound = new Audio("sounds/enemy-death.wav");
+  enemyDeathSound.volume = 0.1;
+  
   const initialState = {
     canvas,
     enemyBulletController,
@@ -36,7 +39,8 @@ const createEnemyController = (canvas, enemyBulletController, playerBulletContro
     moveDownTimer: 30,
     moveDownTimerDefault: 30,
     fireBulletTimer: 100,
-    fireBulletTimerDefault: 100
+    fireBulletTimerDefault: 100,
+    enemyDeathSound
   };
   
   return initialState;
@@ -51,28 +55,90 @@ const createEnemies = (enemyMap) => {
 };
 
 const updateEnemyController = (state) => {
- 
-  return pipe(
+  // Usa o pipe para executar as funções de atualização, incluindo fireBullet
+  const result = pipe(
     updateTimers,
     updateMovement,
     handleCollisions,
-    handleEnemyShooting
+    handleEnemyShooting,
+    fireBullet  // Adiciona fireBullet como última etapa
   )(state);
+  
+  // O resultado pode vir com a estrutura { updatedState, effect } se fireBullet for o último
+  const newState = result.updatedState || result; // Se fireBullet retornar o wrapper, extraímos updatedState
+  
+  // Executa o efeito de disparo, se existir (ou seja, se o timer tiver chegado a zero)
+  if (result.effect) {
+    result.effect();
+  }
+  
+  return newState;
 };
 
+
+
 const drawEnemyController = (state, ctx) => {
-  state.enemyRows.flat().forEach(enemy => {
+
+
+  // Move todos os inimigos de acordo com as velocidades atuais
+  const updatedRows = state.enemyRows.map(row =>
+    row.map(enemy => moveEnemy(enemy, state.xVelocity, state.yVelocity))
+  );
+
+  // Achata o array usando reduce
+  const flattenedEnemies = updatedRows.reduce((acc, row) => acc.concat(row), []);
+
+  // Desenha cada inimigo
+  flattenedEnemies.forEach(enemy => {
     drawE(enemy, ctx);
   });
-  return state;
+  
+  return {
+    ...state,
+    enemyRows: updatedRows
+  };
 };
+
+const fireBullet = (state) => {
+  const timer = state.fireBulletTimer - 1;
+
+  if (timer > 0) {
+    // Retorna o novo estado com o timer decrementado e uma função vazia de efeito
+    return {
+      updatedState: { ...state, fireBulletTimer: timer },
+      effect: () => {}
+    };
+  } else {
+    // O timer foi zerado ou menor que zero, então reiniciamos o timer
+    // e preparamos o efeito de disparo.
+    const allEnemies = state.enemyRows.flat();
+    const enemyIndex = Math.floor(Math.random() * allEnemies.length);
+    const enemy = allEnemies[enemyIndex];
+    const shootEffect = () =>
+      state.enemyBulletController = shootController(
+        state,
+        enemy.x + enemy.width / 2,
+        enemy.y,
+        -3
+      );
+
+    return {
+      updatedState: { ...state, fireBulletTimer: state.fireBulletTimerDefault },
+      effect: shootEffect
+    };
+  }
+};
+
+
+
 
 // Funções auxiliares internas
 const updateTimers = (state) => {
   const newFireTimer = state.fireBulletTimer - 1;
   const newMoveTimer = isMovingDown(state) ? state.moveDownTimer - 1 : state.moveDownTimer;
   
-  return { ...state, 
+  return { 
+    ...state, 
     fireBulletTimer: newFireTimer,
     moveDownTimer: newMoveTimer
   };
@@ -83,32 +149,34 @@ const updateMovement = (state) => {
     return handleDirectionChange(state);
   }
   
-  return {
-    ...state,
-    enemyRows: state.enemyRows.map(row => 
-      row.map(enemy => move(enemy, state.xVelocity, state.yVelocity))
-    )
-  };
+  return state;
 };
 
 const handleCollisions = (state) => {
+  const updatedPlayerBulletController = { ...state.playerBulletController };
+  const updatedEnemyRows = state.enemyRows.map(row => {
+    return row.filter(enemy => {
+      const hitIndex = updatedPlayerBulletController.bullets.findIndex(bullet =>
+        collideWith(enemy, bullet)
+      );
+      if (hitIndex !== -1) {
+        // Remove a bala que colidiu
+        updatedPlayerBulletController.bullets = [
+          ...updatedPlayerBulletController.bullets.slice(0, hitIndex),
+          ...updatedPlayerBulletController.bullets.slice(hitIndex + 1),
+        ];
+        return false; // Remove o inimigo
+      }
+      return true;
+    });
+  }).filter(row => row.length > 0); // Remove linhas vazias
 
-  console.log("Entrou em handleCollisions");
-  console.log("Bullets do player:", state.playerBulletController.bullets);
-  console.log("Inimigos:", state.enemyRows.flat());
-  
-  if (!state || !state.enemyRows) {
-    console.log("State ou enemyRows undefined em handleCollisions", state);
-    return state; // retorna o que veio para não quebrar a pipeline
-  }
-
-  const newEnemyRows = state.enemyRows.map(row =>
-    row.filter(enemy => !collideWithEnemyAndBullet(state, enemy))
-  ).filter(row => row.length > 0);
-  
-  return { ...state, enemyRows: newEnemyRows };
+  return {
+    ...state,
+    enemyRows: updatedEnemyRows,
+    playerBulletController: updatedPlayerBulletController
+  };
 };
-
 
 const handleEnemyShooting = (state) => {
   if (state.fireBulletTimer > 0) return state;
@@ -121,8 +189,8 @@ const handleEnemyShooting = (state) => {
     state.enemyBulletController,
     randomEnemy.x + randomEnemy.width / 2,
     randomEnemy.y,
-    -3,
-    state.fireBulletTimerDefault
+    3, 
+    1  
   );
   
   return {
@@ -132,7 +200,7 @@ const handleEnemyShooting = (state) => {
   };
 };
 
-// Funções de verificação
+
 const isMovingDown = (state) => {
   return [MovingDirection.downLeft, MovingDirection.downRight].includes(state.currentDirection);
 };
@@ -140,12 +208,12 @@ const isMovingDown = (state) => {
 const shouldChangeDirection = (state) => {
   if (state.currentDirection === MovingDirection.right) {
     return state.enemyRows.some(row => 
-      row.some(enemy => enemy.x + enemy.width >= state.canvas.width)
+      row.length > 0 && row[row.length - 1].x + row[row.length - 1].width >= state.canvas.width
     );
   }
   if (state.currentDirection === MovingDirection.left) {
     return state.enemyRows.some(row => 
-      row.some(enemy => enemy.x <= 0)
+      row.length > 0 && row[0].x <= 0
     );
   }
   if (isMovingDown(state)) {
@@ -188,25 +256,23 @@ const handleDirectionChange = (state) => {
     currentDirection: newDirection,
     xVelocity: xVel,
     yVelocity: yVel,
-    moveDownTimer: state.moveDownTimerDefault,
-    enemyRows: state.enemyRows
+    moveDownTimer: state.moveDownTimerDefault
   };
 };
 
-const collideWithEnemyAndBullet = (state, enemy) => {
-  return state.playerBulletController.bullets.some(bullet => 
-    collideWith(enemy, bullet)
+
+const collideWithPlayer = (state, player) => {
+  return state.enemyRows.flat().some(enemy => 
+    collideWith(enemy, player)
   );
 };
 
 
-
-// Função utilitária pipe (simula composição de funções)
 const pipe = (...fns) => (x) => fns.reduce((v, f) => f(v), x);
 
 export { 
   createEnemyController, 
   updateEnemyController, 
   drawEnemyController,
-  collideWithEnemyAndBullet 
+  collideWithPlayer
 };

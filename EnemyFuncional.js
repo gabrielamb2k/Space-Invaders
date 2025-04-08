@@ -31,12 +31,6 @@ const moveEnemy = (enemy, xVelocity, yVelocity) => {
 };
 
 
-const move = (enemy, xVelocity, yVelocity) => {
-  enemy.x += xVelocity;
-  enemy.y += yVelocity;
-  return enemy;
-};
-
 
 const enemyCollideWith = (enemy, sprite) => {
   if (
@@ -51,9 +45,7 @@ const enemyCollideWith = (enemy, sprite) => {
 };
 
 
-const drawE = (enemy, ctx) => {
-  drawEnemy(enemy, ctx);
-};
+const drawE = drawEnemy;
 
 
 const collideWith = (enemy, sprite) => {
@@ -66,6 +58,5 @@ export {
   moveEnemy, 
   enemyCollideWith,
   drawE,
-  move,
   collideWith
 };
