@@ -57,9 +57,9 @@ const collissionDetection = (state) => {
   const newEnemyRows = state.enemyRows.map(enemyRow => {
     const newRow = [...enemyRow];
     for (let i = newRow.length - 1; i >= 0; i--) {
-      if (state.playerBulletController.collideWithController(state, newRow[i])) {
+      if (collideWithController(state, newRow[i])) {
         state.enemyDeathSound.currentTime = 0;
-        state.enemyDeathSound.play();
+       // state.enemyDeathSound.play();
         newRow.splice(i, 1);
       }
     }

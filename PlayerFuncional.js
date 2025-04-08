@@ -16,7 +16,7 @@ const createPlayer = (canvas, velocity, bulletController) => {
   document.addEventListener("keyup", handleKeyUp);
 
   //retorna o player 
-  return {
+  return Object.freeze({
     canvas,
     velocity,
     bulletController,
@@ -25,7 +25,7 @@ const createPlayer = (canvas, velocity, bulletController) => {
     y: canvas.height - 75,
     width: 50,
     height: 48,
-  };
+  });
 };
 
 // Funcoes puras para manipulacao de eventos de teclado
@@ -56,7 +56,7 @@ const handleKeyUp = (event) => {
 //funcao para lidar com o tiro
 const handleShooting = (player) => {
   if (keyboardState.shootPressed) {
-    player.bulletController.shoot(player.x + player.width / 2, player.y, 4, 10);
+    shootController(player, player.x + player.width / 2, player.y, 4, 10);
   }
 
   return player;
