@@ -9,7 +9,9 @@ import {
   MovingDirection
 } from "./MovingDirection.js";
 
-
+import {
+  shootController
+} from './BulletControllerFuncional.js     ';
 
 const ENEMY_MAP = [
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -49,6 +51,7 @@ const createEnemies = (enemyMap) => {
 };
 
 const updateEnemyController = (state) => {
+ 
   return pipe(
     updateTimers,
     updateMovement,
@@ -89,12 +92,23 @@ const updateMovement = (state) => {
 };
 
 const handleCollisions = (state) => {
-  const newEnemyRows = state.enemyRows.map(row => 
+
+  console.log("Entrou em handleCollisions");
+  console.log("Bullets do player:", state.playerBulletController.bullets);
+  console.log("Inimigos:", state.enemyRows.flat());
+  
+  if (!state || !state.enemyRows) {
+    console.log("State ou enemyRows undefined em handleCollisions", state);
+    return state; // retorna o que veio para não quebrar a pipeline
+  }
+
+  const newEnemyRows = state.enemyRows.map(row =>
     row.filter(enemy => !collideWithEnemyAndBullet(state, enemy))
   ).filter(row => row.length > 0);
   
   return { ...state, enemyRows: newEnemyRows };
 };
+
 
 const handleEnemyShooting = (state) => {
   if (state.fireBulletTimer > 0) return state;
@@ -103,10 +117,12 @@ const handleEnemyShooting = (state) => {
   if (allEnemies.length === 0) return state;
   
   const randomEnemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
-  const updatedBulletController = state.enemyBulletController.shoot(
+  const updatedBulletController = shootController(
+    state.enemyBulletController,
     randomEnemy.x + randomEnemy.width / 2,
     randomEnemy.y,
-    -3
+    -3,
+    state.fireBulletTimerDefault
   );
   
   return {
@@ -182,6 +198,8 @@ const collideWithEnemyAndBullet = (state, enemy) => {
     collideWith(enemy, bullet)
   );
 };
+
+
 
 // Função utilitária pipe (simula composição de funções)
 const pipe = (...fns) => (x) => fns.reduce((v, f) => f(v), x);

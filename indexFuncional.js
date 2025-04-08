@@ -2,7 +2,7 @@ import {
   createEnemyController,
   drawEnemyController,
   collideWithEnemyAndBullet,
-  updateEnemyController
+  updateEnemyController   
 } from "./EnemyControllerFunc.js";
 import {
   createPlayer,
@@ -89,6 +89,13 @@ const displayGameOver = (state) => {
 // Loop principal do jogo
 const gameLoop = (state) => {
   const updatedState = checkGameOver(state);
+
+  updatedState.ctx.clearRect(
+    0,
+    0,
+    updatedState.canvas.width,
+    updatedState.canvas.height
+  );
 
   updatedState.ctx.drawImage(
     updatedState.background,
