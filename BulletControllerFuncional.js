@@ -22,25 +22,29 @@ const createBulletController =
   };
 
 //funcao para controlar o estado das balas
-const updateAndDrawBulletController = (controller,ctx) => {
-  //faz a filtragem das balas que estao na tela
-  const filterBullets = controller.bullets.filter(
-    (bullet) =>
-      bullet.y + bullet.width > 0 && bullet.y <= controller.canvas.height,
-  );
-  //funcao para desenhar a bala
-  filterBullets.map((bullet) => drawBullet(ctx)(moveBullet(bullet)));
-  //Atualizar o timer da bala
+const updateAndDrawBulletController = (controller, ctx) => {
+  // Move as balas e desenha ao mesmo tempo
+  const movedBullets = controller.bullets
+    .map(moveBullet)
+    .filter(
+      (bullet) =>
+        bullet.y + bullet.height > 0 && bullet.y <= controller.canvas.height
+    );
+
+  movedBullets.forEach((bullet) => drawBullet(ctx)(bullet));
+
   const updateTimeTillNextBulletAllowed =
     controller.timeTillNextBulletAllowed > 0
-      ? controller.timeTillNextBulletAllowd - 1
+      ? controller.timeTillNextBulletAllowed - 1
       : 0;
+
   return {
     ...controller,
-    bullets: filterBullets,
-    timeTillNextBulletAllowes: updateTimeTillNextBulletAllowed,
+    bullets: movedBullets,
+    timeTillNextBulletAllowed: updateTimeTillNextBulletAllowed,
   };
 };
+
 
 //funcao para controlar a colissao da bala
 const checkCollissionController = (controller,sprite) => {
@@ -65,30 +69,25 @@ const checkCollissionController = (controller,sprite) => {
   }
 
   return {
-    collidded: false,
+    collided: false,
     controller,
   };
 };
 
 //funcao para atirar uma nova bala
 const shootController =
-  (controller,x, y, velocity, timeTillNextBulletAllowed = 0) => {
-    //condicao para ver se pode atirar
+  (controller, x, y, velocity, timeTillNextBulletAllowed = 0) => {
     if (
       controller.timeTillNextBulletAllowed <= 0 &&
       controller.bullets.length < controller.maxBulletsAtATime
     ) {
-      //cria uma nova bala
-      const newBullet = createBullet(
-        controller.canvas(x)(y)(velocity)(controller.bulletColor),
-      );
+      const newBullet = createBullet(controller.canvas)(x)(y)(velocity)(controller.bulletColor);
 
-      // som da bala
-      if (soundEnabled) {
-        shootSound.currentTime = 0;
-        shootSound.play();
+      if (controller.soundEnabled) {
+        controller.shootSound.currentTime = 0;
+        controller.shootSound.play();
       }
-      //retorna a nova bala
+
       return {
         ...controller,
         bullets: [...controller.bullets, newBullet],
@@ -96,9 +95,9 @@ const shootController =
       };
     }
 
-    //se nao puder atirar
     return controller;
   };
+
 
 export {
   createBulletController,

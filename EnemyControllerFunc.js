@@ -9,221 +9,186 @@ import {
   MovingDirection
 } from "./MovingDirection.js";
 
-const createEnemyController = (canvas, enemyBulletController, playerBulletController) => {
-  const enemyMap = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
-    [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-  ];
-  
-  const enemyDeathSound = new Audio("sounds/enemy-death.wav");
-  enemyDeathSound.volume = 0.1;
 
-  const state = {
+
+const ENEMY_MAP = [
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+  [2, 2, 2, 3, 3, 3, 3, 2, 2, 2],
+  [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+];
+
+const createEnemyController = (canvas, enemyBulletController, playerBulletController) => {
+  const initialState = {
     canvas,
     enemyBulletController,
     playerBulletController,
-    enemyDeathSound,
-    enemyMap,
-    enemyRows: [],
+    enemyRows: createEnemies(ENEMY_MAP),
     currentDirection: MovingDirection.right,
-    xVelocity: 0,
+    xVelocity: 1,
     yVelocity: 0,
     defaultXVelocity: 1,
     defaultYVelocity: 1,
-    moveDownTimerDefault: 30,
     moveDownTimer: 30,
-    fireBulletTimerDefault: 100,
-    fireBulletTimer: 100
-  };
-
-  return createEnemies(state);
-};
-
-const draw = (state, ctx) => {
-  const state1 = decrementMoveDownTimer(state);
-  const state2 = updateVelocityAndDirection(state1);
-  const state3 = collissionDetection(state2);
-  drawEnemies(state3, ctx);
-  const state4 = resetMoveDownTimer(state3);
-  return fireBullet(state4);
-};
-
-
-const collissionDetection = (state) => {
-  const newEnemyRows = state.enemyRows.map(enemyRow => {
-    const newRow = [...enemyRow];
-    for (let i = newRow.length - 1; i >= 0; i--) {
-      if (collideWithController(state, newRow[i])) {
-        state.enemyDeathSound.currentTime = 0;
-       // state.enemyDeathSound.play();
-        newRow.splice(i, 1);
-      }
-    }
-    return newRow;
-  }).filter(enemyRow => enemyRow.length > 0);
-
-  return {
-    ...state,
-    enemyRows: newEnemyRows
-  };
-}
-
-const fireBullet = (state) => {
-const newFireBulletTimer = state.fireBulletTimer - 1;
-  
-  if (newFireBulletTimer <= 0) {
-    const allEnemies = state.enemyRows.flat();
-    if (allEnemies.length > 0) {
-      const enemyIndex = Math.floor(Math.random() * allEnemies.length);
-      const enemy = allEnemies[enemyIndex];
-      state.enemyBulletController.shoot(enemy.x + enemy.width / 2, enemy.y, -3);
-    }
-    
-    return {
-      ...state,
-      fireBulletTimer: state.fireBulletTimerDefault
-    };
-  }
-  
-  return {
-    ...state,
-    fireBulletTimer: newFireBulletTimer
-  };
-}
-
-const resetMoveDownTimer = (state) => {
-  if (state.moveDownTimer <= 0) {
-    return {
-      ...state,
-      moveDownTimer: state.moveDownTimerDefault
-    };
-  }
-  return state;
-};
-
-const decrementMoveDownTimer = (state) => {
-  if (
-    state.currentDirection === MovingDirection.downLeft ||
-    state.currentDirection === MovingDirection.downRight
-  ) {
-    return {
-      ...state,
-      moveDownTimer: state.moveDownTimer - 1
-    };
-  }
-  return state;
-};
-
-const updateVelocityAndDirection = (state) => {
-  let newState = { ...state };
-  
-  outerLoop: for (const enemyRow of state.enemyRows) {
-    if (enemyRow.length === 0) continue;
-    
-    if (state.currentDirection === MovingDirection.right) {
-      newState = {
-        ...newState,
-        xVelocity: state.defaultXVelocity,
-        yVelocity: 0
-      };
-      
-      const rightMostEnemy = enemyRow[enemyRow.length - 1];
-      if (rightMostEnemy.x + rightMostEnemy.width >= state.canvas.width) {
-        newState = {
-          ...newState,
-          currentDirection: MovingDirection.downLeft
-        };
-        break outerLoop;
-      }
-    } else if (state.currentDirection === MovingDirection.downLeft) {
-      const result = moveDown(newState, MovingDirection.left);
-      if (result.changed) {
-        newState = result.state;
-        break outerLoop;
-      }
-    } else if (state.currentDirection === MovingDirection.left) {
-      newState = {
-        ...newState,
-        xVelocity: -state.defaultXVelocity,
-        yVelocity: 0
-      };
-      
-      const leftMostEnemy = enemyRow[0];
-      if (leftMostEnemy.x <= 0) {
-        newState = {
-          ...newState,
-          currentDirection: MovingDirection.downRight
-        };
-        break outerLoop;
-      }
-    } else if (state.currentDirection === MovingDirection.downRight) {
-      const result = moveDown(newState, MovingDirection.right);
-      if (result.changed) {
-        newState = result.state;
-        break outerLoop;
-      }
-    }
-  }
-  
-  return newState;
-};
-
-const moveDown = (state, newDirection) => {
-  const newState = {
-    ...state,
-    xVelocity: 0,
-    yVelocity: state.defaultYVelocity
+    moveDownTimerDefault: 30,
+    fireBulletTimer: 100,
+    fireBulletTimerDefault: 100
   };
   
-  if (state.moveDownTimer <= 0) {
-    return {
-      changed: true,
-      state: {
-        ...newState,
-        currentDirection: newDirection
-      }
-    };
-  }
-  
-  return {
-    changed: false,
-    state: newState
-  };
+  return initialState;
 };
 
-const drawEnemies = (state, ctx) => {
+const createEnemies = (enemyMap) => {
+  return enemyMap.map((row, rowIndex) => 
+    row.map((enemyType, enemyIndex) => 
+      enemyType > 0 ? createEnemy(enemyIndex * 50, rowIndex * 35, enemyType) : null
+    ).filter(Boolean)
+  );
+};
+
+const updateEnemyController = (state) => {
+  return pipe(
+    updateTimers,
+    updateMovement,
+    handleCollisions,
+    handleEnemyShooting
+  )(state);
+};
+
+const drawEnemyController = (state, ctx) => {
   state.enemyRows.flat().forEach(enemy => {
-    enemy.move(state.xVelocity, state.yVelocity);
-    enemy.drawE(ctx);
+    drawE(enemy, ctx);
   });
+  return state;
 };
 
-const createEnemies = (state) => {
-  const enemyRows = [];
+// Funções auxiliares internas
+const updateTimers = (state) => {
+  const newFireTimer = state.fireBulletTimer - 1;
+  const newMoveTimer = isMovingDown(state) ? state.moveDownTimer - 1 : state.moveDownTimer;
   
-  state.enemyMap.forEach((row, rowIndex) => {
-    enemyRows[rowIndex] = [];
-    row.forEach((enemyNumber, enemyIndex) => {
-      if (enemyNumber > 0) {
-        enemyRows[rowIndex].push(
-          createEnemy(enemyIndex * 50, rowIndex * 35, enemyNumber)
-        );
-      }
-    });
-  });
-  
-  return {
-    ...state,
-    enemyRows
+  return { ...state, 
+    fireBulletTimer: newFireTimer,
+    moveDownTimer: newMoveTimer
   };
 };
 
-const collideWithController = (state, sprite) => {
-  return state.enemyRows.flat().some(enemy => collideWith(enemy, sprite));
+const updateMovement = (state) => {
+  if (shouldChangeDirection(state)) {
+    return handleDirectionChange(state);
+  }
+  
+  return {
+    ...state,
+    enemyRows: state.enemyRows.map(row => 
+      row.map(enemy => move(enemy, state.xVelocity, state.yVelocity))
+    )
+  };
 };
 
-export { createEnemyController, draw, collideWithController };
+const handleCollisions = (state) => {
+  const newEnemyRows = state.enemyRows.map(row => 
+    row.filter(enemy => !collideWithEnemyAndBullet(state, enemy))
+  ).filter(row => row.length > 0);
+  
+  return { ...state, enemyRows: newEnemyRows };
+};
+
+const handleEnemyShooting = (state) => {
+  if (state.fireBulletTimer > 0) return state;
+  
+  const allEnemies = state.enemyRows.flat();
+  if (allEnemies.length === 0) return state;
+  
+  const randomEnemy = allEnemies[Math.floor(Math.random() * allEnemies.length)];
+  const updatedBulletController = state.enemyBulletController.shoot(
+    randomEnemy.x + randomEnemy.width / 2,
+    randomEnemy.y,
+    -3
+  );
+  
+  return {
+    ...state,
+    fireBulletTimer: state.fireBulletTimerDefault,
+    enemyBulletController: updatedBulletController
+  };
+};
+
+// Funções de verificação
+const isMovingDown = (state) => {
+  return [MovingDirection.downLeft, MovingDirection.downRight].includes(state.currentDirection);
+};
+
+const shouldChangeDirection = (state) => {
+  if (state.currentDirection === MovingDirection.right) {
+    return state.enemyRows.some(row => 
+      row.some(enemy => enemy.x + enemy.width >= state.canvas.width)
+    );
+  }
+  if (state.currentDirection === MovingDirection.left) {
+    return state.enemyRows.some(row => 
+      row.some(enemy => enemy.x <= 0)
+    );
+  }
+  if (isMovingDown(state)) {
+    return state.moveDownTimer <= 0;
+  }
+  return false;
+};
+
+const handleDirectionChange = (state) => {
+  let newDirection, xVel, yVel;
+  
+  switch(state.currentDirection) {
+    case MovingDirection.right:
+      newDirection = MovingDirection.downLeft;
+      xVel = 0;
+      yVel = state.defaultYVelocity;
+      break;
+      
+    case MovingDirection.downLeft:
+      newDirection = MovingDirection.left;
+      xVel = -state.defaultXVelocity;
+      yVel = 0;
+      break;
+      
+    case MovingDirection.left:
+      newDirection = MovingDirection.downRight;
+      xVel = 0;
+      yVel = state.defaultYVelocity;
+      break;
+      
+    case MovingDirection.downRight:
+      newDirection = MovingDirection.right;
+      xVel = state.defaultXVelocity;
+      yVel = 0;
+      break;
+  }
+  
+  return {
+    ...state,
+    currentDirection: newDirection,
+    xVelocity: xVel,
+    yVelocity: yVel,
+    moveDownTimer: state.moveDownTimerDefault,
+    enemyRows: state.enemyRows
+  };
+};
+
+const collideWithEnemyAndBullet = (state, enemy) => {
+  return state.playerBulletController.bullets.some(bullet => 
+    collideWith(enemy, bullet)
+  );
+};
+
+// Função utilitária pipe (simula composição de funções)
+const pipe = (...fns) => (x) => fns.reduce((v, f) => f(v), x);
+
+export { 
+  createEnemyController, 
+  updateEnemyController, 
+  drawEnemyController,
+  collideWithEnemyAndBullet 
+};

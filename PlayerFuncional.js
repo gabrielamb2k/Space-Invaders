@@ -1,24 +1,20 @@
-import {
-  shootController
-} from "./BulletControllerFuncional.js"
-//usar let, porque vai ter que alterar o evento, dependendo do estado que ele vai estar
-let keyboardState = () => ({
+import { shootController } from "./BulletControllerFuncional.js";
+
+// Estado de teclado global (imutável na estrutura, mas mutável nas flags internas)
+const keyboardState = {
   rightPressed: false,
   leftPressed: false,
   shootPressed: false,
-});
+};
 
-//funcao para criar um player
+// Cria um novo player
 const createPlayer = (canvas, velocity, bulletController) => {
-  //imagem da nave
   const image = new Image();
   image.src = "images/player.png";
 
-  //configurar event listernes para o html, para pegar as interacoes do usuario com o teclado
   document.addEventListener("keydown", handleKeyDown);
   document.addEventListener("keyup", handleKeyUp);
 
-  //retorna o player 
   return Object.freeze({
     canvas,
     velocity,
@@ -31,102 +27,83 @@ const createPlayer = (canvas, velocity, bulletController) => {
   });
 };
 
-// Funcoes puras para manipulacao de eventos de teclado
+// Manipuladores de eventos de teclado
 const handleKeyDown = (event) => {
-  if (event.code === "ArrowRight") {
-    keyboardState = { ...keyboardState, rightPressed: true };
-  }
-  if (event.code === "ArrowLeft") {
-    keyboardState = { ...keyboardState, leftPressed: true };
-  }
-  if (event.code === "Space") {
-    keyboardState = { ...keyboardState, shootPressed: true };
-  }
+  if (event.code === "ArrowRight") keyboardState.rightPressed = true;
+  if (event.code === "ArrowLeft") keyboardState.leftPressed = true;
+  if (event.code === "Space") keyboardState.shootPressed = true;
 };
 
 const handleKeyUp = (event) => {
-  if (event.code === "ArrowRight") {
-    keyboardState = { ...keyboardState, rightPressed: false };
-  }
-  if (event.code === "ArrowLeft") {
-    keyboardState = { ...keyboardState, leftPressed: false };
-  }
-  if (event.code === "Space") {
-    keyboardState = { ...keyboardState, shootPressed: false };
-  }
+  if (event.code === "ArrowRight") keyboardState.rightPressed = false;
+  if (event.code === "ArrowLeft") keyboardState.leftPressed = false;
+  if (event.code === "Space") keyboardState.shootPressed = false;
 };
 
-//funcao para lidar com o tiro
+// Lida com o disparo do jogador
 const handleShooting = (player) => {
   if (keyboardState.shootPressed) {
-    shootController(player, player.x + player.width / 2, player.y, 4, 10);
+    const updatedBulletController = shootController(
+      player.bulletController,
+      player.x + player.width / 2,
+      player.y,
+      -10 // velocidade para cima
+    );
+
+    return {
+      ...player,
+      bulletController: updatedBulletController,
+    };
   }
 
   return player;
 };
 
-//funcao principal para atualizar e desenhar o player
-const updateAndDrawPlayer = (player, ctx) => {
-  //verifica se deve atirar
-  const playerAfterShooting = handleShooting(player);
 
-  //depois move o player
-  const playerAfterMoving = movePlayer(playerAfterShooting);
-
-  //depois verifica colisoes com paredes
-  const playerAfterCollision = handleWallCollision(playerAfterMoving);
-
-  //desenha a nave
-  ctx.drawImage(
-    playerAfterCollision.image,
-    playerAfterCollision.x,
-    playerAfterCollision.y,
-    playerAfterCollision.width,
-    playerAfterCollision.height,
-  );
-
-  //retorna a nave atualizado
-  return playerAfterCollision;
-};
-
-//funcao para mover o player baseado no estado do teclado
+// Move o jogador com base nas teclas pressionadas
 const movePlayer = (player) => {
-  //usar let, pois a posicao do player vai mudar
   let newX = player.x;
 
-  //verifica se a tecla pressionada foi para ir para a esquerda ou para a direita
-  if (keyboardState.rightPressed) {
-    newX += player.velocity;
-  } else if (keyboardState.leftPressed) {
-    newX -= player.velocity;
-  }
+  if (keyboardState.rightPressed) newX += player.velocity;
+  if (keyboardState.leftPressed) newX -= player.velocity;
 
-  //retorna o nova posicao da nave
   return {
     ...player,
     x: newX,
   };
 };
 
-//funcao para verificar e corrigir colisoes com as paredes
+// Corrige colisão com as bordas do canvas
 const handleWallCollision = (player) => {
-  let adjustedPlayerX = player.x;
+  let newX = player.x;
 
-  //colissao com a parede esquerda
-  if (adjustedPlayerX < 0) {
-    adjustedPlayerX = 0;
-  }
-
-  //colissao com a parede direita
-  if (adjustedPlayerX > player.canvas.width - player.width) {
-    adjustedPlayerX = player.canvas.width - player.width;
+  if (newX < 0) newX = 0;
+  if (newX > player.canvas.width - player.width) {
+    newX = player.canvas.width - player.width;
   }
 
   return {
     ...player,
-    x: adjustedPlayerX,
+    x: newX,
   };
 };
 
-//exportar as funcoes para os outros arquivos
+// Atualiza e desenha o player
+const updateAndDrawPlayer = (player, ctx) => {
+  const afterShooting = handleShooting(player);
+  const afterMoving = movePlayer(afterShooting);
+  const finalPlayer = handleWallCollision(afterMoving);
+
+  ctx.drawImage(
+    finalPlayer.image,
+    finalPlayer.x,
+    finalPlayer.y,
+    finalPlayer.width,
+    finalPlayer.height
+  );
+
+  return finalPlayer;
+};
+
+// Exporta as funções
 export { createPlayer, updateAndDrawPlayer, keyboardState };

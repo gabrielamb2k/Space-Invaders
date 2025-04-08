@@ -12,7 +12,7 @@ const createBullet = (canvas) => (x) => (y) => (velocity) => (bulletColor) => ({
 //funcao para mover a bala
 const moveBullet = (bullet) => ({
   ...bullet,
-  y: bullet.y - bullet.velocity,
+  y: bullet.y + bullet.velocity,
 });
 
 //funcao para desenhar a bala
