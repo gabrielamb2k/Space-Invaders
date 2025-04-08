@@ -153,30 +153,48 @@ const updateMovement = (state) => {
 };
 
 const handleCollisions = (state) => {
-  const updatedPlayerBulletController = { ...state.playerBulletController };
-  const updatedEnemyRows = state.enemyRows.map(row => {
-    return row.filter(enemy => {
-      const hitIndex = updatedPlayerBulletController.bullets.findIndex(bullet =>
-        collideWith(enemy, bullet)
-      );
-      if (hitIndex !== -1) {
-        // Remove a bala que colidiu
-        updatedPlayerBulletController.bullets = [
-          ...updatedPlayerBulletController.bullets.slice(0, hitIndex),
-          ...updatedPlayerBulletController.bullets.slice(hitIndex + 1),
-        ];
-        return false; // Remove o inimigo
-      }
-      return true;
-    });
-  }).filter(row => row.length > 0); // Remove linhas vazias
+  let updatedPlayerBulletController = { ...state.playerBulletController };
+  let soundPlayed = false;
+
+  const updatedEnemyRows = state.enemyRows
+    .map((row) => {
+      return row.filter((enemy) => {
+        const hitIndex = updatedPlayerBulletController.bullets.findIndex((bullet) =>
+          collideWith(enemy, bullet)
+        );
+
+        if (hitIndex !== -1) {
+          // Remove a bala sem modificar diretamente
+          updatedPlayerBulletController = {
+            ...updatedPlayerBulletController,
+            bullets: [
+              ...updatedPlayerBulletController.bullets.slice(0, hitIndex),
+              ...updatedPlayerBulletController.bullets.slice(hitIndex + 1),
+            ],
+          };
+
+          // Toca o som de morte uma vez
+          if (!soundPlayed && state.enemyDeathSound) {
+            state.enemyDeathSound.currentTime = 0;
+            state.enemyDeathSound.play();
+            soundPlayed = true;
+          }
+
+          return false; // Remove inimigo
+        }
+
+        return true; // Mantém inimigo
+      });
+    })
+    .filter((row) => row.length > 0); // Remove linhas vazias
 
   return {
     ...state,
     enemyRows: updatedEnemyRows,
-    playerBulletController: updatedPlayerBulletController
+    playerBulletController: updatedPlayerBulletController,
   };
 };
+
 
 const handleEnemyShooting = (state) => {
   if (state.fireBulletTimer > 0) return state;

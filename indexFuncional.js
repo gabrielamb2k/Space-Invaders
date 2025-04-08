@@ -86,7 +86,7 @@ const checkGameOver = (state) => {
 const displayGameOver = (state) => {
   if (state.isGameOver) {
     const text = state.didWin ? "Voce ganhou" : "Voce perdeu";
-    const textOffset = state.didWin ? 3.5 : 5;
+    const textOffset = state.didWin ? 5.5 : 5;
 
     state.ctx.fillStyle = "white";
     state.ctx.font = "70px Arial";
@@ -136,32 +136,42 @@ const gameLoop = (state) => {
   displayGameOver(updatedState);
 
   if (!updatedState.isGameOver) {
-    const updatedEnemyController = updateEnemyController(updatedState.enemyController);
+    // Atualiza o controlador dos inimigos e já passa a controller de balas do jogador
+    const updatedEnemyController = updateEnemyController({
+      ...updatedState.enemyController,
+      playerBulletController: updatedState.playerBulletController
+    });
+
     const newEnemyController = drawEnemyController(updatedEnemyController, updatedState.ctx);
 
     const newPlayer = updateAndDrawPlayer(updatedState.player, updatedState.ctx);
-    const newPlayerBulletController = updateAndDrawBulletController(updatedState.playerBulletController, updatedState.ctx);
-    
 
-     // Verifica se deve atirar
-     const finalPlayerBulletController = keyboardState.shootPressed
-     ? shootController(
-         newPlayerBulletController,
-         newPlayer.x + newPlayer.width / 2,
-         newPlayer.y,
-         -10
-       )
-     : newPlayerBulletController;
-    
+    // Usa o bulletController atualizado vindo de updateEnemyController
+    const newPlayerBulletController = updateAndDrawBulletController(
+      updatedEnemyController.playerBulletController,
+      updatedState.ctx
+    );
 
-    const newEnemyBulletController = updateAndDrawBulletController(updatedState.enemyBulletController, updatedState.ctx);
+    // Verifica se deve atirar
+    const finalPlayerBulletController = keyboardState.shootPressed
+      ? shootController(
+          newPlayerBulletController,
+          newPlayer.x + newPlayer.width / 2,
+          newPlayer.y,
+          -10 // direção para cima
+        )
+      : newPlayerBulletController;
+
+    const newEnemyBulletController = updateAndDrawBulletController(
+      updatedState.enemyBulletController,
+      updatedState.ctx
+    );
 
     // Reduz temporizador de tiro dos inimigos
     const updatedCooldown = Math.max(0, updatedState.enemyShootCooldown - 1);
     let newEnemyBulletControllerFinal = newEnemyBulletController;
     let resetCooldown = updatedCooldown;
 
-    // Se chegou a 0, atira e reseta o cooldown
     if (updatedCooldown === 0) {
       const tempState = {
         ...updatedState,
@@ -169,22 +179,23 @@ const gameLoop = (state) => {
       };
       const afterShootState = enemyShoot(tempState);
       newEnemyBulletControllerFinal = afterShootState.enemyBulletController;
-      resetCooldown = 50 + Math.floor(Math.random() * 30); // adiciona variação aleatória
+      resetCooldown = 50 + Math.floor(Math.random() * 30);
     }
 
-
-      requestAnimationFrame(() =>
-        gameLoop({
-          ...updatedState,
-          enemyController: newEnemyController,
-          player: newPlayer,
-          playerBulletController: finalPlayerBulletController,
-          enemyBulletController: newEnemyBulletControllerFinal, 
-          enemyShootCooldown: resetCooldown,
-        })
-      );
+    // Chama próximo frame com tudo atualizado
+    requestAnimationFrame(() =>
+      gameLoop({
+        ...updatedState,
+        enemyController: newEnemyController,
+        player: newPlayer,
+        playerBulletController: finalPlayerBulletController,
+        enemyBulletController: newEnemyBulletControllerFinal,
+        enemyShootCooldown: resetCooldown,
+      })
+    );
   }
 };
+
 
 // Inicialização do jogo
 const startGame = () => {
