@@ -1,3 +1,6 @@
+import {
+  shootController
+} from "./BulletControllerFuncional.js"
 //usar let, porque vai ter que alterar o evento, dependendo do estado que ele vai estar
 let keyboardState = () => ({
   rightPressed: false,
