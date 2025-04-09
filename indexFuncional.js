@@ -39,7 +39,7 @@ const createGameState = () => {
 
 
   const playerBulletController = createBulletController(canvas, 10, "red", true);
-  const enemyBulletController = createBulletController(canvas, 4, "white", false);
+  const enemyBulletController = createBulletController(canvas, 4, "blue", false);
   const enemyController = createEnemyController(canvas, enemyBulletController, playerBulletController);
   const player = createPlayer(canvas, 3, playerBulletController);
 
@@ -87,8 +87,11 @@ const displayGameOver = (state) => {
   if (state.isGameOver) {
     const text = state.didWin ? "Voce ganhou" : "Voce perdeu";
     const textOffset = state.didWin ? 5.5 : 5;
-
-    state.ctx.fillStyle = "white";
+    if(text==='Voce ganhou') {
+      state.ctx.fillStyle = "green"
+    }else{
+      state.ctx.fillStyle = "red"
+    }
     state.ctx.font = "70px Arial";
     state.ctx.fillText(text, state.canvas.width / textOffset, state.canvas.height / 2);
   }
