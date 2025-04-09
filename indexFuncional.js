@@ -16,6 +16,7 @@ import {
   shootController,
 } from "./BulletControllerFuncional.js";
 
+// Função pura: Não tem efeitos colaterais, sempre retorna o mesma saída para os mesmos grupo de entrada 
 // inicializa o canvas
 const initCanvas = () => {
   const canvas = document.getElementById("game");
@@ -32,6 +33,7 @@ const loadImage = (src) => {
   return image;
 };
 
+// Função de criação de estado: Retorna um objeto imutável com todo o estado inicial do jogo
 // cria um estado inicial do game
 const createGameState = () => {
   const { canvas, ctx } = initCanvas();
@@ -56,11 +58,11 @@ const createGameState = () => {
     enemyShootCooldown: 50,
   };
 };
-
+//Não modifica o estado, apenas verifica condições e retorna novo estado
 const checkGameOver = (state) => {
   if (state.isGameOver) return state;
 
-
+   // Verifica colisões
   const { collided: hitByBullet, controller: updatedEnemyBulletController } =
     checkCollissionController(state.enemyBulletController, state.player);
 
@@ -74,6 +76,7 @@ const checkGameOver = (state) => {
   const gameOver = hitByBullet || hitByEnemy;
   const playerWon = noEnemiesLeft && !gameOver;
 
+  // Retorna novo estado atualizado 
   return {
     ...state,
     isGameOver: gameOver || playerWon,
@@ -121,13 +124,15 @@ const enemyShoot = (state) => {
 const gameLoop = (state) => {
   const updatedState = checkGameOver(state);
 
+   // (limpar canvas)
   updatedState.ctx.clearRect(
     0,
     0,
     updatedState.canvas.width,
     updatedState.canvas.height
   );
-
+  
+  //(desenhar background)
   updatedState.ctx.drawImage(
     updatedState.background,
     0,
@@ -155,7 +160,8 @@ const gameLoop = (state) => {
       updatedState.ctx
     );
 
-    // Verifica se deve atirar
+    // Esta é uma expressão condicional (ternária) que decide se o jogador atira ou não
+    // Verrifica se o botão de tiro (space) foi pressionado 
     const finalPlayerBulletController = keyboardState.shootPressed
       ? shootController(
           newPlayerBulletController,
@@ -165,6 +171,7 @@ const gameLoop = (state) => {
         )
       : newPlayerBulletController;
 
+    // Atualiza e desenha todas as balas inimigas
     const newEnemyBulletController = updateAndDrawBulletController(
       updatedState.enemyBulletController,
       updatedState.ctx
@@ -176,12 +183,15 @@ const gameLoop = (state) => {
     let resetCooldown = updatedCooldown;
 
     if (updatedCooldown === 0) {
+      //Cria um estado temporário com as balas inimigas atualizadas
       const tempState = {
         ...updatedState,
         enemyBulletController: newEnemyBulletController
       };
       const afterShootState = enemyShoot(tempState);
       newEnemyBulletControllerFinal = afterShootState.enemyBulletController;
+
+      //Adiciona variação para tornar o jogo menos previsível
       resetCooldown = 50 + Math.floor(Math.random() * 30);
     }
 
